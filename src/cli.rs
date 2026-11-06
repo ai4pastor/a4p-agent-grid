@@ -138,7 +138,7 @@ pub fn main(args: Vec<String>) -> Result<()> {
         return Ok(());
     }
     if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
-        return Err("Needs a terminal; use the herdr-agent-grid.open plugin action".into());
+        return Err("Needs a terminal; use the a4p-agent-grid.open plugin action".into());
     }
     app::run(client, if demo { Some(state) } else { None }, motion, icons)
 }
@@ -147,13 +147,15 @@ fn open(args: &[String]) -> Result<()> {
     if let Some(a) = args.first() {
         return Err(format!("Unknown open argument: {a}"));
     }
+    // A4P: herdr가 넘겨주는 자기 플러그인 이름을 쓴다 (원본 herdr-agent-grid와 같이 깔려도 안 겹치게)
+    let plugin = std::env::var("HERDR_PLUGIN_ID").unwrap_or_else(|_| "a4p-agent-grid".into());
     let status = std::process::Command::new(crate::client::herdr_bin())
         .args([
             "plugin",
             "pane",
             "open",
             "--plugin",
-            "herdr-agent-grid",
+            plugin.as_str(),
             "--entrypoint",
             "grid",
             "--focus",

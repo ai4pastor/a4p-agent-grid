@@ -307,7 +307,8 @@ fn completed_filter_hides_parents_and_child_rows_without_changing_totals() {
     let button = view.completed_button.unwrap();
     assert!(view.click_controls(button.x, button.y));
     view.draw(&state, 140, 38, 0.0, 0.0);
-    assert_eq!(view.items, vec![0, 1, 5, 6]);
+    // A4P 순서: 입력 필요(p1) → 작업 중(p0) → 확인함(p6) → 알 수 없음(p5)
+    assert_eq!(view.items, vec![1, 0, 6, 5]);
     view.selected = "p6".into();
     view.zoom = true;
     let frame = view.draw(&state, 140, 38, 0.0, 0.0);

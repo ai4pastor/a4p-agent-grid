@@ -17,6 +17,8 @@ pub struct Agent {
     pub cwd: String,
     pub terminal_id: String,
     pub state_seq: u64,
+    /// A4P: herdr-attention 플러그인이 칸에 써 둔 분류(att_state: red/yellow/green/blue). 없으면 빈 값.
+    pub attention: String,
 }
 
 #[derive(Clone, Default, PartialEq, Deserialize, Serialize)]
@@ -420,6 +422,7 @@ pub fn agents_from(snapshot: &serde_json::Value) -> Vec<Agent> {
                 cwd: first(&[&a["foreground_cwd"], &a["cwd"], &p["cwd"]]),
                 terminal_id: first(&[&a["terminal_id"], &p["terminal_id"]]),
                 state_seq: a["state_change_seq"].as_u64().unwrap_or(0),
+                attention: a["tokens"]["att_state"].as_str().unwrap_or("").into(),
             })
         })
         .collect()

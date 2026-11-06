@@ -57,6 +57,42 @@ pub fn styles() -> HashMap<String, Style> {
             styles[status].add_modifier(Modifier::REVERSED | Modifier::BOLD),
         );
     }
+    // A4P 상태 색 (herdr-attention 분류): 글자·테두리 att:<색>, 색 막대 att:<색>:bar
+    let rgb = |hex: u32| Color::Rgb((hex >> 16) as u8, (hex >> 8) as u8, hex as u8);
+    for (cat, color, ink) in [
+        ("red", 0xff453a, 0xffffff),
+        ("yellow", 0xffd60a, 0x1a1600),
+        ("green", 0x30d158, 0x0b2914),
+        ("blue", 0x64d2ff, 0x06202e),
+        ("unknown", 0x8b93a3, 0x111111),
+    ] {
+        let text = Style::default().fg(rgb(color));
+        let text = if matches!(cat, "red" | "yellow") {
+            text.add_modifier(Modifier::BOLD)
+        } else {
+            text
+        };
+        styles.insert(format!("att:{cat}"), text);
+        styles.insert(
+            format!("focus:att:{cat}"),
+            Style::default().fg(rgb(color)).add_modifier(Modifier::BOLD),
+        );
+        styles.insert(
+            format!("att:{cat}:bar"),
+            Style::default()
+                .bg(rgb(color))
+                .fg(rgb(ink))
+                .add_modifier(Modifier::BOLD),
+        );
+    }
+    styles.insert("tab:all".into(), Style::default());
+    styles.insert(
+        "tab:all:on".into(),
+        Style::default()
+            .bg(rgb(0xe8e2ff))
+            .fg(rgb(0x111111))
+            .add_modifier(Modifier::BOLD),
+    );
     styles
 }
 pub fn paint(
@@ -132,6 +168,13 @@ pub fn key(view: &mut View, state: &State, event: KeyEvent) -> Action {
             }
             _ => {}
         }
+        return Action::Continue;
+    }
+    // A4P 색 탭: 1 전체 · 2 입력 필요 · 3 확인 안 함 · 4 확인함 · 5 작업 중
+    if !view.subagents
+        && let KeyCode::Char(c @ '1'..='5') = code
+    {
+        view.tab = crate::view::TABS[(c as u8 - b'1') as usize].0;
         return Action::Continue;
     }
     let delta = match code {

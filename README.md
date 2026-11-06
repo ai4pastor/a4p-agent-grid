@@ -1,3 +1,48 @@
+# A4P 에이전트 상황판 (a4p-agent-grid)
+
+herdr에서 키 하나로 **모든 에이전트를 카드로 한눈에** 보는 상황판입니다.
+[jeffarese/herdr-agent-grid](https://github.com/jeffarese/herdr-agent-grid) v2.1.0(MIT)을 목회자 수강생용으로 고친 판입니다.
+
+## 원본에서 바꾼 것
+
+- **위쪽 색 탭**: `1` 전체 · `2` █ 입력 필요(빨강) · `3` █ 확인 안 함(노랑) · `4` ✓ 확인함(초록) · `5` ◐ 작업 중(파랑). 숫자 키나 클릭으로 바꿉니다. 입력 필요가 있으면 탭의 숫자가 빨간 막대로 표시됩니다.
+- **카드 색**: 입력 필요·확인 안 함 카드는 제목줄 전체가 색 막대입니다. 확인함은 차분하게, 작업 중은 파랑(노랑과 헷갈리지 않게).
+- **순서**: 입력 필요 → 작업 중 → 확인 안 함 → 확인함.
+- **분류 기준**: [herdr-attention](https://github.com/ai4pastor/herdr-attention) 플러그인이 칸마다 써 둔 값(`att_state`)을 읽어서, 왼쪽 사이드바 색 표시와 똑같이 나눕니다. 그 플러그인이 없으면 herdr 상태로 짐작합니다(blocked = 입력 필요, working = 작업 중, done = 확인 안 함, idle = 확인함).
+- 머리줄·탭·배지·아래 안내줄을 한국어로. 플러그인 이름을 `a4p-agent-grid`로 바꿔서 원본과 같이 깔려도 겹치지 않습니다.
+
+## 설치
+
+필요한 것: macOS, herdr 0.9 이상, Rust(cargo) 1.88 이상 — 설치할 때 이 맥에서 컴파일합니다.
+
+```sh
+herdr plugin install ai4pastor/a4p-agent-grid
+```
+
+단축키(`~/.config/herdr/config.toml`):
+
+```toml
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "a4p-agent-grid.open"
+description = "에이전트 상황판"
+```
+
+Ghostty에서 ⌥A 한 번으로 열려면 Ghostty 설정에 `keybind = alt+KeyA=text:\x1b[24~a` (herdr 접두키에 `f12`가 있을 때).
+
+카드를 고르고 Enter를 누르면 그 칸으로 갑니다(그러면 herdr-attention이 "확인함"으로 바꿉니다). Esc·`q` = 닫기.
+카드의 비용 숫자는 API 요금으로 환산한 추정치라 구독 요금제와는 무관합니다.
+
+## 개발 메모
+
+- 시험: `cargo test --workspace`. 화면을 일부러 바꿨으면 눈으로 확인한 뒤 `A4P_UPDATE_FRAMES=1 cargo test -p herdr-agent-grid --test regression`으로 화면 원본(`tests/fixtures/frames.json`)을 다시 만듭니다.
+- 원본 새 버전 합치기: `git fetch upstream --tags` 후 `a4p` 브랜치에 합칩니다. 원본 저작권 표시(LICENSE)는 그대로 둡니다.
+
+---
+
+아래는 원본 설명(영어)입니다.
+
 <p align="center">
   <img src="docs/media/hero.png" alt="herdr-agent-grid — Your agents. One command center." width="900">
 </p>

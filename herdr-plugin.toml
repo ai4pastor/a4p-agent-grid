@@ -1,8 +1,11 @@
-id = "herdr-agent-grid"
-name = "Herdr Agent Grid"
-version = "2.1.0"
+# A4P 에이전트 상황판 — jeffarese/herdr-agent-grid v2.1.0(MIT)을 고친 판.
+# 바꾼 것: 위쪽 색 탭(1~5), 카드 색을 herdr-attention 분류로(빨강 입력 필요·노랑 확인 안 함·초록 확인함·파랑 작업 중), 한국어 표시.
+# 버전 뒤 -a4p.N: 원본 릴리스 실행 파일을 잘못 내려받지 않게 (cargo가 있으면 소스에서 빌드)
+id = "a4p-agent-grid"
+name = "A4P 에이전트 상황판"
+version = "2.1.0-a4p.1"
 min_herdr_version = "0.9.0"
-description = "Your agents. One command center. Live status, tools, messages and API cost."
+description = "모든 에이전트를 카드로 한눈에: 입력 필요(빨강)·확인 안 함(노랑)·확인함(초록)·작업 중(파랑) 탭"
 platforms = ["linux", "macos", "windows"]
 
 # Herdr resolves "./" programs against the plugin root on every platform
@@ -17,8 +20,8 @@ command = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy"
 
 [[actions]]
 id = "open"
-title = "Open agent grid"
-description = "See every current agent's status and metrics, and jump to its terminal"
+title = "에이전트 상황판 열기"
+description = "모든 에이전트의 상태를 카드로 보고, 고른 칸으로 바로 간다"
 contexts = ["global"]
 command = ["./bin/herdr-agent-grid", "open"]
 
@@ -26,8 +29,8 @@ command = ["./bin/herdr-agent-grid", "open"]
 # and manifest, but do not expose it in the CLI --placement enum.
 [[panes]]
 id = "grid"
-title = "Agent Grid"
-description = "Compact status cards with live session metrics"
+title = "에이전트 상황판"
+description = "에이전트마다 상태 카드 한 장"
 placement = "popup"
 width = "100%"
 height = "100%"

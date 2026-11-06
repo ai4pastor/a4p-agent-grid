@@ -47,6 +47,17 @@ fn status(s: &str) -> &str {
         "unknown"
     }
 }
+/// A4P 색 탭 (숫자 1~5): 분류값과 이름
+pub const TABS: [(&str, &str); 5] = [
+    ("all", "전체"),
+    ("red", "█ 입력 필요"),
+    ("yellow", "█ 확인 안 함"),
+    ("green", "✓ 확인함"),
+    ("blue", "◐ 작업 중"),
+];
+fn tab_on(tab: &str, cat: &str) -> bool {
+    tab == cat || (cat == "all" && tab.is_empty())
+}
 pub fn children_summary(children: &[Subagent]) -> String {
     let working = children.iter().filter(|c| c.status == "working").count();
     let unknown = children.iter().filter(|c| c.status == "unknown").count();
@@ -267,9 +278,12 @@ pub struct View {
     pub scope_label: String,
     /// The agent card selected before entering the subagents view.
     pub return_to: String,
+    /// A4P 색 탭: "all"(빈 값도 전체)·"red"·"yellow"·"green"·"blue"
+    pub tab: &'static str,
+    pub tab_buttons: Vec<(Rect, &'static str)>,
     indices: HashMap<String, usize>,
-    inventory_key: Option<(u64, String, bool)>,
-    arrangement_key: Option<(u64, usize, usize, String, String, bool, bool)>,
+    inventory_key: Option<(u64, String, bool, &'static str)>,
+    arrangement_key: Option<(u64, usize, usize, String, String, bool, bool, &'static str)>,
     overview_revision: Option<u64>,
     overview_value: (HashMap<String, usize>, String),
 }
@@ -354,6 +368,14 @@ impl View {
         self.child_offsets.clear();
     }
     pub fn click_controls(&mut self, x: usize, y: usize) -> bool {
+        if let Some((_, tab)) = self
+            .tab_buttons
+            .iter()
+            .find(|(r, _)| x >= r.x && x < r.x + r.width && y == r.y)
+        {
+            self.tab = tab;
+            return true;
+        }
         if self
             .completed_button
             .is_some_and(|r| x >= r.x && x < r.x + r.width && y == r.y)
@@ -385,12 +407,13 @@ impl View {
             self.query.clone(),
             self.zoom,
             self.hide_completed,
+            self.tab,
         );
         if state.revision != 0 && self.arrangement_key.as_ref() == Some(&key) {
             return;
         }
         let query = casefold(&self.query);
-        let inv = (state.revision, query.clone(), self.hide_completed);
+        let inv = (state.revision, query.clone(), self.hide_completed, self.tab);
         if state.revision == 0 || self.inventory_key.as_ref() != Some(&inv) {
             self.items = state
                 .agents
@@ -420,10 +443,16 @@ impl View {
                         ))
                         .contains(&query)
                 })
+                .filter(|(_, a)| self.subagents || tab_on(self.tab, "all") || attention(a) == self.tab)
                 .map(|(i, _)| i)
                 .collect();
-            self.items
-                .sort_by_key(|i| state.agents[*i].status != "working");
+            if self.subagents {
+                self.items
+                    .sort_by_key(|i| state.agents[*i].status != "working");
+            } else {
+                self.items
+                    .sort_by_key(|i| attention_rank(attention(&state.agents[*i])));
+            }
             self.indices = self
                 .items
                 .iter()
@@ -468,6 +497,7 @@ impl View {
             self.query.clone(),
             self.zoom,
             self.hide_completed,
+            self.tab,
         ));
     }
     pub fn animating(&self, state: &State) -> bool {
@@ -582,18 +612,14 @@ impl View {
         } else {
             String::new()
         };
-        p.put(
-            0,
-            0,
-            match (self.subagents, width >= 55) {
-                (false, true) => "  ◆ AGENT GRID",
-                (false, false) => " ◆ GRID",
-                (true, true) => "  ◆ SUBAGENTS",
-                (true, false) => " ◆ SUBS",
-            },
-            "brand",
-            if width >= 55 { 18 } else { 9 },
-        );
+        let title = match (self.subagents, width >= 55) {
+            (false, true) => "  ◆ 에이전트 상황판",
+            (false, false) => " ◆ 상황판",
+            (true, true) => "  ◆ SUBAGENTS",
+            (true, false) => " ◆ SUBS",
+        };
+        let title_w = crate::model::width(title);
+        p.put(0, 0, title, "brand", title_w);
         let connection = if !state.error.is_empty() {
             "OFFLINE"
         } else if state.updated != 0.0 {
@@ -617,26 +643,27 @@ impl View {
             );
         }
         let active = counts["working"];
-        let bx = if width >= 55 { 19 } else { 10 };
+        let bx = (title_w + 2).max(if width >= 55 { 19 } else { 10 });
         let bw = width.saturating_sub(bx + if width >= 55 { connection.len() + 6 } else { 1 });
-        let active_badge = if width >= 55 {
-            format!(" {active} ACTIVE / {} TOTAL ", state.agents.len())
-        } else {
-            format!(" {active} ACTIVE ")
+        let active_badge = match (self.subagents, width >= 55) {
+            (false, true) => format!(" 작업 중 {active} / 전체 {} ", state.agents.len()),
+            (false, false) => format!(" 작업 중 {active} "),
+            (true, true) => format!(" {active} ACTIVE / {} TOTAL ", state.agents.len()),
+            (true, false) => format!(" {active} ACTIVE "),
         };
         p.put(
             bx,
             0,
             &active_badge,
-            if active > 0 {
-                "selection:working"
-            } else {
-                "selection:idle"
+            match (self.subagents, active > 0) {
+                (false, true) => "att:blue:bar",
+                (true, true) => "selection:working",
+                _ => "selection:idle",
             },
             bw,
         );
         if !context.is_empty() && width >= 90 {
-            let cx = bx + active_badge.len() + 2;
+            let cx = bx + crate::model::width(&active_badge) + 2;
             p.put(
                 cx,
                 0,
@@ -645,25 +672,64 @@ impl View {
                 width.saturating_sub(cx + connection.len() + 6),
             );
         }
-        let mut x = 2;
-        for (s, label) in [
-            ("working", "working"),
-            (
-                "blocked",
-                if self.subagents {
-                    "failed"
+        self.tab_buttons.clear();
+        if self.subagents {
+            let mut x = 2;
+            for (s, label) in [
+                ("working", "working"),
+                ("blocked", "failed"),
+                ("done", "done"),
+                ("idle", "idle"),
+                ("unknown", "unknown"),
+            ] {
+                if counts[s] > 0 {
+                    let v = format!("{} {label}", counts[s]);
+                    p.put(x, 1, &v, s, width);
+                    x += v.len() + 4;
+                }
+            }
+        } else {
+            // A4P 색 탭 막대: 1 전체 · 2 입력 필요 · 3 확인 안 함 · 4 확인함 · 5 작업 중
+            let mut per_cat: HashMap<&str, usize> = HashMap::new();
+            for a in &state.agents {
+                *per_cat.entry(attention(a)).or_default() += 1;
+            }
+            let mut x = 2;
+            for (i, (cat, label)) in TABS.iter().enumerate() {
+                let n = if *cat == "all" {
+                    state.agents.len()
                 } else {
-                    "need input"
-                },
-            ),
-            ("done", "done"),
-            ("idle", "idle"),
-            ("unknown", "unknown"),
-        ] {
-            if counts[s] > 0 {
-                let v = format!("{} {label}", counts[s]);
-                p.put(x, 1, &v, s, width);
-                x += v.len() + 4;
+                    per_cat.get(cat).copied().unwrap_or(0)
+                };
+                let on = tab_on(self.tab, cat);
+                let style = match (*cat, on) {
+                    ("all", true) => "tab:all:on".to_string(),
+                    ("all", false) => "tab:all".to_string(),
+                    (_, true) => format!("att:{cat}:bar"),
+                    (_, false) => format!("att:{cat}"),
+                };
+                let head = format!(" {} {label}", i + 1);
+                let count = format!(" {n} ");
+                let hw = crate::model::width(&head);
+                p.put(x, 1, &head, &style, hw);
+                // 입력 필요는 고르지 않은 탭이어도 숫자를 빨간 막대로 — 놓치지 않게
+                let count_style = if *cat == "red" && n > 0 && !on {
+                    "att:red:bar".to_string()
+                } else {
+                    style.clone()
+                };
+                p.put(x + hw, 1, &count, &count_style, count.len());
+                let tw = hw + count.len();
+                self.tab_buttons.push((
+                    Rect {
+                        x,
+                        y: 1,
+                        width: tw,
+                        height: 1,
+                    },
+                    cat,
+                ));
+                x += tw + 1;
             }
         }
         if state.agents.is_empty() {
@@ -791,16 +857,39 @@ impl View {
             } else {
                 phase
             };
-            let badge = badge(phase);
-            let ss = status(&a.status);
-            let border = if selected {
+            // A4P: 에이전트 카드는 herdr-attention 분류(빨강·노랑·초록·파랑)로 색을 입힌다.
+            // 서브에이전트 카드(cat 빈 값)는 원래 방식 그대로.
+            let cat = if self.subagents { "" } else { attention(a) };
+            let badge: String = if cat.is_empty() {
+                badge(phase).into()
+            } else if cat == "blue" {
+                working_label(phase).into()
+            } else {
+                attention_label(cat).into()
+            };
+            let ss: String = if cat.is_empty() {
+                status(&a.status).into()
+            } else {
+                format!("att:{cat}")
+            };
+            let border = if !cat.is_empty() {
+                if selected {
+                    format!("focus:att:{cat}")
+                } else {
+                    format!("att:{cat}")
+                }
+            } else if selected {
                 format!("focus:{ss}")
             } else if matches!(a.status.as_str(), "working" | "blocked" | "done") {
                 a.status.clone()
             } else {
                 "border".into()
             };
-            let settled = matches!(a.status.as_str(), "done" | "idle") && !selected;
+            let settled = if cat.is_empty() {
+                matches!(a.status.as_str(), "done" | "idle") && !selected
+            } else {
+                cat == "green" && !selected
+            };
             let (tl, hor, tr, bl, br, ver) = if selected {
                 ("╔", "═", "╗", "╚", "╝", "║")
             } else {
@@ -819,7 +908,23 @@ impl View {
                 p.put(x + w - 1, y + row, ver, &border, 1);
             }
             let number = self.indices[&a.pane_id] + 1;
-            if selected {
+            if !cat.is_empty() && (selected || matches!(cat, "red" | "yellow")) {
+                // 색 막대 제목줄: 고른 카드, 그리고 입력 필요·확인 안 함 카드는 늘
+                let mark = if selected { "▶ " } else { "" };
+                let text = padded(
+                    &format!(" {mark}{}  {number:02}  {} ", attention_label(cat), a.name),
+                    w - 4,
+                );
+                p.put(x + 2, y, text, format!("att:{cat}:bar"), w - 4);
+            } else if !cat.is_empty() {
+                p.put(
+                    x + 2,
+                    y,
+                    format!("   {number:02}  {} ", a.name),
+                    format!("att:{cat}"),
+                    w - 5,
+                );
+            } else if selected {
                 let tag = if w >= 30 { " SELECTED " } else { "" };
                 let title =
                     padded(&format!(" ▶ {number:02}  {} ", a.name), w - 4 - tag.len()) + tag;
@@ -881,7 +986,7 @@ impl View {
                 );
                 p.inside(r, 4, format!("{badge} · {}", a.workspace), ss);
             } else if h >= 12 {
-                let blen = badge.chars().count();
+                let blen = crate::model::width(&badge);
                 p.put(
                     x + 2,
                     y + 3,
@@ -890,22 +995,36 @@ impl View {
                     w.saturating_sub(blen + 6).max(1),
                 );
                 if w > blen + 8 {
-                    p.put(x + w - blen - 2, y + 3, badge, ss, blen);
+                    p.put(x + w - blen - 2, y + 3, &badge, &ss, blen);
                 }
-                for (cx, cy, text, style) in core_runs(
-                    phase,
-                    w - 4,
-                    if h >= 14 { 2 } else { 1 },
-                    tick,
-                    &a.pane_id,
-                    self.motion,
-                ) {
-                    p.commands.push(Draw {
-                        x: x + 2 + cx,
-                        y: y + 4 + cy,
-                        text,
-                        style,
-                    });
+                let rows = if h >= 14 { 2 } else { 1 };
+                if !cat.is_empty() && cat != "blue" {
+                    // A4P: 끝난 카드 가운데 줄 — 한글 폭(2칸)을 세어 가운데 맞춘다
+                    let note = attention_note(cat);
+                    let inner = w - 4;
+                    let nw = crate::model::width(note).min(inner);
+                    let left = (inner - nw) / 2;
+                    let ny = y + 4 + rows / 2;
+                    p.put(x + 2, ny, "─".repeat(left), "border", left);
+                    p.put(x + 2 + left, ny, note, &ss, nw);
+                    p.put(
+                        x + 2 + left + nw,
+                        ny,
+                        "─".repeat(inner - left - nw),
+                        "border",
+                        inner - left - nw,
+                    );
+                } else {
+                    for (cx, cy, text, style) in
+                        core_runs(phase, w - 4, rows, tick, &a.pane_id, self.motion)
+                    {
+                        p.commands.push(Draw {
+                            x: x + 2 + cx,
+                            y: y + 4 + cy,
+                            text,
+                            style,
+                        });
+                    }
                 }
                 let cr = if h >= 14 { 6 } else { 5 };
                 let latest = if m.last_call.is_empty() {
@@ -1084,8 +1203,8 @@ impl View {
                     ),
                     "metric",
                 );
-                let blen = badge.chars().count();
-                p.put(x + 2, y + 6, badge, ss, blen);
+                let blen = crate::model::width(&badge);
+                p.put(x + 2, y + 6, &badge, &ss, blen);
                 if w > blen + 8 {
                     let detail = if !m.subagents.is_empty() {
                         format!(
@@ -1396,12 +1515,12 @@ impl View {
                 width,
             );
         }
-        let mut legend = "  ↑↓←→ select   Enter/click open   z details   s subagents   / filter   r refresh   Esc close";
+        let mut legend = "  1~5 탭   ↑↓←→ 고르기   Enter 그 칸으로   z 자세히   s 서브에이전트   / 찾기   r 새로고침   Esc 닫기";
         if self.page_count > 1 && !self.zoom {
-            legend = "  Arrows select  Enter/click open  PgUp/PgDn pages  z details  s subagents  / filter  Esc close";
+            legend = "  1~5 탭   ↑↓←→ 고르기   Enter 그 칸으로   PgUp/PgDn 쪽 넘기기   z 자세히   / 찾기   Esc 닫기";
         }
         if self.searching {
-            legend = "  Type to filter   Enter finish   Esc clear filter";
+            legend = "  글자를 치면 거르기   Enter 끝   Esc 지우기";
         } else if self.zoom && self.child_count > 0 {
             legend = "  PgUp/PgDn scroll subagents   ←→ agent   Enter open   z grid   / filter   Esc back";
         } else if self.subagents {

@@ -29,6 +29,60 @@ pub fn badge(phase: &str) -> &str {
         _ => "? UNKNOWN",
     }
 }
+/// A4P 카드 분류. herdr-attention 플러그인의 att_state를 우선 쓰고, 없으면 herdr 상태로 짐작한다.
+/// red = 입력 필요, yellow = 끝났는데 아직 안 봄, green = 끝나고 봄, blue = 작업 중.
+pub fn attention(agent: &crate::model::Agent) -> &'static str {
+    match agent.attention.as_str() {
+        "red" => "red",
+        "yellow" => "yellow",
+        "green" => "green",
+        "blue" => "blue",
+        _ => match agent.status.as_str() {
+            "blocked" => "red",
+            "working" => "blue",
+            "done" => "yellow",
+            "idle" => "green",
+            _ => "unknown",
+        },
+    }
+}
+/// 전체 탭의 카드 순서: 입력 필요 → 작업 중 → 확인 안 함 → 확인함.
+pub fn attention_rank(cat: &str) -> u8 {
+    match cat {
+        "red" => 0,
+        "blue" => 1,
+        "yellow" => 2,
+        "green" => 3,
+        _ => 4,
+    }
+}
+pub fn attention_label(cat: &str) -> &'static str {
+    match cat {
+        "red" => "█ 입력 필요",
+        "yellow" => "█ 확인 안 함",
+        "green" => "✓ 확인함",
+        "blue" => "◐ 작업 중",
+        _ => "? 알 수 없음",
+    }
+}
+/// 끝난 카드 가운데 줄에 들어가는 설명
+pub fn attention_note(cat: &str) -> &'static str {
+    match cat {
+        "red" => "! 답을 기다리는 중",
+        "yellow" => "✓ 끝남 · 아직 안 봄",
+        "green" => "✓ 끝남 · 확인함",
+        _ => "? 상태를 알 수 없음",
+    }
+}
+/// 작업 중 카드의 배지: 무엇을 하는 중인지
+pub fn working_label(phase: &str) -> &'static str {
+    match phase {
+        "thinking" => "✻ 생각 중",
+        "writing" => "✎ 쓰는 중",
+        "tool" => "▸ 도구 사용",
+        _ => "◐ 작업 중",
+    }
+}
 pub fn tone(phase: &str) -> &str {
     if phase == "working" {
         "thinking"

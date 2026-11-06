@@ -145,7 +145,8 @@ fn keyboard_focus_and_clean_terminal_exit() {
     assert!(t.contains("first") && t.contains("second"));
     t.send(b"\t\r").unwrap();
     finish(&mut t);
-    assert!(f.calls().contains(&json!(["agent", "focus", "w1:p2"])));
+    // A4P 순서: 입력 필요(p2) → 작업 중(p1). Tab으로 둘째 카드 = p1
+    assert!(f.calls().contains(&json!(["agent", "focus", "w1:p1"])));
 }
 #[cfg(unix)]
 #[test]
@@ -165,7 +166,8 @@ fn mouse_focus_and_escape_do_not_send_agent_input() {
         let focus: Vec<_> = calls.iter().filter(|c| c[0] == "agent").collect();
         assert_eq!(focus.len(), usize::from(mouse));
         if mouse {
-            assert_eq!(focus[0], &json!(["agent", "focus", "w1:p1"]));
+            // A4P 순서: 첫 카드는 입력 필요인 p2
+            assert_eq!(focus[0], &json!(["agent", "focus", "w1:p2"]));
         }
         assert!(
             calls
@@ -183,7 +185,8 @@ fn details_scroll_reaches_every_child() {
     t.wait_for(WAIT, |t| t.contains("3 working / 20 total"))
         .unwrap();
     assert!(!t.contains("ZZZZ"));
-    t.send(b"z").unwrap();
+    // A4P 순서에서는 입력 필요(p2)가 첫 카드라, Tab으로 자식이 달린 p1을 고른 뒤 자세히 본다
+    t.send(b"\tz").unwrap();
     t.wait_for(WAIT, |t| t.contains("PgUp/PgDn scroll"))
         .unwrap();
     assert!(t.contains("Cost review"));
@@ -272,7 +275,7 @@ fn installer_links_backs_up_reloads_and_preserves_symlinks() {
         "plugin",
         "action",
         "invoke",
-        "herdr-agent-grid.open"
+        "a4p-agent-grid.open"
     ])));
 }
 #[test]
@@ -345,7 +348,7 @@ fn open_action_asks_herdr_for_the_grid_popup() {
             "pane",
             "open",
             "--plugin",
-            "herdr-agent-grid",
+            "a4p-agent-grid",
             "--entrypoint",
             "grid",
             "--focus"

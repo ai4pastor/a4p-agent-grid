@@ -7,7 +7,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use toml_edit::{DocumentMut, Item, value};
-const ACTION: &str = "herdr-agent-grid.open";
+const ACTION: &str = "a4p-agent-grid.open";
 const LEGACY: &str = "herdr-grid.open";
 const KEYS: [&str; 3] = ["cmd+g", "prefix+a", "ctrl+alt+g"];
 pub fn config_with_shortcut(text: &str) -> Result<(String, Option<String>)> {
@@ -59,7 +59,7 @@ pub fn config_with_shortcut(text: &str) -> Result<(String, Option<String>)> {
         }
     }
     let result = format!(
-        "{}\n\n# Agent Grid: full-panel agent status cards\n[[keys.command]]\nkey = [\"cmd+g\", \"prefix+a\", \"ctrl+alt+g\"]\ntype = \"plugin_action\"\ncommand = \"herdr-agent-grid.open\"\ndescription = \"agent grid\"\n",
+        "{}\n\n# A4P 에이전트 상황판: 모든 에이전트를 카드로\n[[keys.command]]\nkey = [\"cmd+g\", \"prefix+a\", \"ctrl+alt+g\"]\ntype = \"plugin_action\"\ncommand = \"a4p-agent-grid.open\"\ndescription = \"agent grid\"\n",
         text.trim_end()
     );
     result.parse::<DocumentMut>().map_err(|e| e.to_string())?;
@@ -139,7 +139,7 @@ pub fn run(args: &[String]) -> Result<()> {
     );
     if open {
         invoke(
-            &["plugin", "action", "invoke", "herdr-agent-grid.open"],
+            &["plugin", "action", "invoke", ACTION],
             &config,
         )?;
     }

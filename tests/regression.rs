@@ -91,7 +91,7 @@ fn configuration_preserves_comments_bindings_and_idempotency() {
     let after = config_with_shortcut(before).unwrap().0;
     assert_eq!(
         after,
-        before.replace("herdr-grid.open", "herdr-agent-grid.open")
+        before.replace("herdr-grid.open", "a4p-agent-grid.open")
     );
     assert_eq!(config_with_shortcut(&after).unwrap().0, after);
     for text in [
@@ -166,8 +166,11 @@ fn inventory_rejects_duplicates_and_retains_workspace_labels() {
 #[test]
 fn frames_match_reviewed_terminal_fixtures() {
     let state: State = serde_json::from_str(include_str!("../assets/demo.json")).unwrap();
-    let cases: Vec<Value> = serde_json::from_str(include_str!("fixtures/frames.json")).unwrap();
-    for case in cases {
+    let mut cases: Vec<Value> =
+        serde_json::from_str(include_str!("fixtures/frames.json")).unwrap();
+    // A4P: 화면을 일부러 바꿨을 때는 눈으로 검토한 뒤 A4P_UPDATE_FRAMES=1 cargo test 로 다시 만든다
+    let update = std::env::var_os("A4P_UPDATE_FRAMES").is_some();
+    for case in cases.iter_mut() {
         let mut view = View::new(false);
         view.icons = "unicode".into();
         view.zoom = case["zoom"].as_bool().unwrap();
@@ -178,7 +181,18 @@ fn frames_match_reviewed_terminal_fixtures() {
             1800000000.0,
             0.0,
         );
-        equivalent(&case["expected"], &json!(actual), "frame");
+        if update {
+            case["expected"] = json!(actual);
+        } else {
+            equivalent(&case["expected"], &json!(actual), "frame");
+        }
+    }
+    if update {
+        std::fs::write(
+            concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/frames.json"),
+            serde_json::to_string_pretty(&cases).unwrap() + "\n",
+        )
+        .unwrap();
     }
 }
 

@@ -55,6 +55,6 @@ fn actions_and_panes_run_the_native_binary_on_every_platform() {
     }
     let action = &doc["actions"][0];
     assert_eq!(strings(&action["command"])[1..], ["open"]);
-    assert_eq!(id, "herdr-agent-grid");
+    assert_eq!(id, "a4p-agent-grid");
     assert_eq!(doc["panes"][0]["id"].as_str(), Some("grid"));
 }
