@@ -166,8 +166,7 @@ fn inventory_rejects_duplicates_and_retains_workspace_labels() {
 #[test]
 fn frames_match_reviewed_terminal_fixtures() {
     let state: State = serde_json::from_str(include_str!("../assets/demo.json")).unwrap();
-    let mut cases: Vec<Value> =
-        serde_json::from_str(include_str!("fixtures/frames.json")).unwrap();
+    let mut cases: Vec<Value> = serde_json::from_str(include_str!("fixtures/frames.json")).unwrap();
     // A4P: 화면을 일부러 바꿨을 때는 눈으로 검토한 뒤 A4P_UPDATE_FRAMES=1 cargo test 로 다시 만든다
     let update = std::env::var_os("A4P_UPDATE_FRAMES").is_some();
     for case in cases.iter_mut() {

@@ -32,7 +32,7 @@ if [ "$installed" != "herdr-agent-grid $version" ]; then
     asset="herdr-agent-grid-v${version}-${target}.tar.gz"
     stage=$(mktemp -d)
     trap 'rm -rf "$stage"' EXIT HUP INT TERM
-    url="https://github.com/jeffarese/herdr-agent-grid/releases/download/v${version}"
+    url="https://github.com/ai4pastor/a4p-agent-grid/releases/download/v${version}"
     curl --fail --location --proto '=https' --tlsv1.2 "$url/$asset" -o "$stage/$asset"
     curl --fail --location --proto '=https' --tlsv1.2 "$url/SHA256SUMS" -o "$stage/SHA256SUMS"
     (cd "$stage"

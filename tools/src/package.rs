@@ -176,10 +176,10 @@ pub fn run(args: &[String]) -> Result<()> {
                 let mut text = String::from_utf8(data)?;
                 for dir in ["docs/", "benchmarks/"] {
                     let raw = format!(
-                        "https://raw.githubusercontent.com/jeffarese/herdr-agent-grid/v{version}/{dir}"
+                        "https://raw.githubusercontent.com/ai4pastor/a4p-agent-grid/v{version}/{dir}"
                     );
                     let page = format!(
-                        "https://github.com/jeffarese/herdr-agent-grid/blob/v{version}/{dir}"
+                        "https://github.com/ai4pastor/a4p-agent-grid/blob/v{version}/{dir}"
                     );
                     text = text.replace(&format!("src=\"{dir}"), &format!("src=\"{raw}"));
                     text = text.replace(&format!("href=\"{dir}"), &format!("href=\"{page}"));

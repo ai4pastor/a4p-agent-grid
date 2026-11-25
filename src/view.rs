@@ -251,6 +251,9 @@ fn wrap_cells(text: &str, width: usize) -> Vec<String> {
     lines
 }
 
+/// 카드 배치를 다시 계산할지 가르는 값(원본 7칸 + A4P 색 탭 이름)
+type ArrangementKey = (u64, usize, usize, String, String, bool, bool, &'static str);
+
 #[derive(Default)]
 pub struct View {
     pub selected: String,
@@ -283,7 +286,7 @@ pub struct View {
     pub tab_buttons: Vec<(Rect, &'static str)>,
     indices: HashMap<String, usize>,
     inventory_key: Option<(u64, String, bool, &'static str)>,
-    arrangement_key: Option<(u64, usize, usize, String, String, bool, bool, &'static str)>,
+    arrangement_key: Option<ArrangementKey>,
     overview_revision: Option<u64>,
     overview_value: (HashMap<String, usize>, String),
 }
@@ -443,7 +446,9 @@ impl View {
                         ))
                         .contains(&query)
                 })
-                .filter(|(_, a)| self.subagents || tab_on(self.tab, "all") || attention(a) == self.tab)
+                .filter(|(_, a)| {
+                    self.subagents || tab_on(self.tab, "all") || attention(a) == self.tab
+                })
                 .map(|(i, _)| i)
                 .collect();
             if self.subagents {

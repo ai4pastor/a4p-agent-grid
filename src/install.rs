@@ -138,10 +138,7 @@ pub fn run(args: &[String]) -> Result<()> {
             .unwrap_or("Existing shortcut preserved.".into())
     );
     if open {
-        invoke(
-            &["plugin", "action", "invoke", ACTION],
-            &config,
-        )?;
+        invoke(&["plugin", "action", "invoke", ACTION], &config)?;
     }
     Ok(())
 }

@@ -13,7 +13,7 @@ herdr에서 키 하나로 **모든 에이전트를 카드로 한눈에** 보는 
 
 ## 설치
 
-필요한 것: macOS, herdr 0.9 이상, Rust(cargo) 1.88 이상 — 설치할 때 이 맥에서 컴파일합니다.
+필요한 것: macOS, herdr 0.9 이상. 설치할 때 미리 빌드한 실행 파일(애플 칩·인텔)을 받아 SHA-256으로 확인합니다. 이 맥에 Rust(cargo) 1.88 이상이 있으면 소스에서 빌드합니다.
 
 ```sh
 herdr plugin install ai4pastor/a4p-agent-grid

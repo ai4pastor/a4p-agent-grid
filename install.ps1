@@ -55,7 +55,7 @@ if ((Test-Path -LiteralPath 'Cargo.toml') -and (Get-Command $cargo -ErrorAction 
         $asset = "herdr-agent-grid-v$version-$target.tar.gz"
         # HERDR_AGENT_GRID_RELEASE_URL lets CI test this path against local archives.
         $url = if ($env:HERDR_AGENT_GRID_RELEASE_URL) { $env:HERDR_AGENT_GRID_RELEASE_URL } else {
-            "https://github.com/jeffarese/herdr-agent-grid/releases/download/v$version"
+            "https://github.com/ai4pastor/a4p-agent-grid/releases/download/v$version"
         }
         $stage = Join-Path ([System.IO.Path]::GetTempPath()) ("herdr-agent-grid-" + [guid]::NewGuid())
         New-Item -ItemType Directory -Path $stage | Out-Null
